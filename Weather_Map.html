@@ -1805,12 +1805,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 </summary>
                 <div style="margin-top:5px; padding:7px 8px; background:rgba(0,0,0,0.03); border-radius:8px; border:1px solid rgba(0,0,0,0.07);">
                     <!-- Service Mode Switch (Pre-Service vs Post-Service) -->
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding:3px 5px; background:rgba(0,0,0,0.035); border-radius:6px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; padding:3px 5px; background:rgba(0,0,0,0.035); border-radius:6px; border:1px solid rgba(0,0,0,0.06);">
                         <span style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.04em;">Service Mode</span>
                         <div style="display:inline-flex; background:#e2e8f0; border-radius:4px; padding:1px;">
                             <button id="btn-mode-pre" type="button" onclick="setServiceMode('pre')" style="font-size:0.6rem; padding:2px 6px; border:none; border-radius:3px; cursor:pointer; background:transparent; font-weight:600; color:#475569; transition:all 0.15s ease;" title="View raw un-serviced scraped data">⏹ Pre-Service</button>
                             <button id="btn-mode-post" type="button" onclick="setServiceMode('post')" style="font-size:0.6rem; padding:2px 6px; border:none; border-radius:3px; cursor:pointer; background:#0076ff; font-weight:700; color:#ffffff; transition:all 0.15s ease;" title="View final serviced &amp; CDM filled data">⚡ Post-Service</button>
                         </div>
+                    </div>
+                    <div id="service-mode-banner" style="font-size:0.58rem; font-weight:600; color:#0369a1; background:rgba(2,132,199,0.08); border:1px solid rgba(2,132,199,0.2); border-radius:5px; padding:3px 6px; margin-bottom:6px; text-align:center;">
+                        ⚡ <strong>Post-Service Mode</strong>: Showing final CDM serviced state &amp; healed stations.
                     </div>
                     <!-- Row 1: Parameter + Division side by side -->
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:5px;">
@@ -2456,6 +2459,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
             currentServiceMode = mode;
             const btnPre = document.getElementById("btn-mode-pre");
             const btnPost = document.getElementById("btn-mode-post");
+            const bannerEl = document.getElementById("service-mode-banner");
+
             if (btnPre && btnPost) {
                 if (mode === "pre") {
                     btnPre.style.background = "#ef4444";
@@ -2464,6 +2469,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     btnPost.style.background = "transparent";
                     btnPost.style.color = "#475569";
                     btnPost.style.fontWeight = "600";
+                    if (bannerEl) {
+                        bannerEl.innerHTML = "⏹ <strong>Pre-Service Mode</strong>: Showing raw scraped state (104 Partial Data, 1008 Healthy).";
+                        bannerEl.style.background = "rgba(239,68,68,0.08)";
+                        bannerEl.style.color = "#b91c1c";
+                        bannerEl.style.borderColor = "rgba(239,68,68,0.25)";
+                    }
                 } else {
                     btnPost.style.background = "#0076ff";
                     btnPost.style.color = "#ffffff";
@@ -2471,6 +2482,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     btnPre.style.background = "transparent";
                     btnPre.style.color = "#475569";
                     btnPre.style.fontWeight = "600";
+                    if (bannerEl) {
+                        bannerEl.innerHTML = "⚡ <strong>Post-Service Mode</strong>: 17 Partial Data sites HEALED ➔ 87 Partial remaining, 1025 Healthy!";
+                        bannerEl.style.background = "rgba(2,132,199,0.08)";
+                        bannerEl.style.color = "#0369a1";
+                        bannerEl.style.borderColor = "rgba(2,132,199,0.25)";
+                    }
                 }
             }
 
@@ -2485,6 +2502,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
             calculateAnomalies();
             updateOverlay();
             renderLogs();
+
+            // Flash visual pulse on changing stat cards (Healthy & Partial)
+            ["scard-working", "scard-pd"].forEach(id => {
+                const card = document.getElementById(id);
+                if (card) {
+                    card.style.transform = "scale(1.08)";
+                    card.style.transition = "transform 0.2s ease";
+                    setTimeout(() => { card.style.transform = "scale(1)"; }, 250);
+                }
+            });
         }
 
         function setInnerText(id, text) {
