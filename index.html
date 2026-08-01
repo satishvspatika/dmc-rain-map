@@ -2324,9 +2324,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     interactive: false,
                     pane: 'districtPane'
                 }).addTo(map);
-                printLog("✓ Districts GeoJSON boundary layer successfully initialized.");
+                console.log("✓ Districts GeoJSON boundary layer successfully initialized.");
             } catch (e) {
-                printLog("⚠️ Failed to parse district outlines GeoJSON: " + e);
+                console.log("⚠️ Failed to parse district outlines GeoJSON: " + e);
             }
         }
 
@@ -2357,7 +2357,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
                         interactive: false,
                         pane: 'maskPane'
                     }).addTo(map);
-                    printLog("✓ Karnataka state visual mask layer successfully initialized.");
+                    console.log("✓ Karnataka state visual mask layer successfully initialized.");
                 }
             } catch (e) {
                 console.error("⚠️ Visual mask generation failed: ", e);
@@ -2751,7 +2751,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         function focusOnStation(station) {
             map.setView([station.lat, station.lon], 11.8);
             showPopup(station);
-            closeMobileSidebar();
+            if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
         }
 
         function renderLogs() {
@@ -2930,7 +2930,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         if (fitBtn) {
             fitBtn.addEventListener("click", function() {
                 map.setView([15.15, 75.8], 7.0);
-                printLog("✓ Centered and fit map view to Karnataka.");
+                console.log("✓ Centered and fit map view to Karnataka.");
             });
         }
 
@@ -2985,11 +2985,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
             });
 
             // Update label visibility instantly
-            updateLabelVisibility();
+            if (typeof updateLabelVisibility === 'function') updateLabelVisibility();
+        }
+
+        function updateLabelVisibility() {
+            const zoom = map.getZoom();
+            labelLayerGroup.eachLayer(function(layer) {
+                if (layer._icon || layer._container) {
+                    const el = layer._icon || layer._container;
+                    if (el) el.style.display = (zoom >= 11) ? '' : 'none';
+                }
+            });
         }
 
         // Update label visibility and marker sizes on zoomend only (buttery smooth pan & zoom!)
         map.on("zoomend", updateZoomStyles);
+        map.on("zoomend", updateLabelVisibility);
 
         // Initialize Execution
         function initApp() {
