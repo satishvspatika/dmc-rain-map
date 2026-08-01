@@ -2366,164 +2366,177 @@ svg.leaflet-image-layer.leaflet-interactive path {
         let detectedTwsWspAnomaliesList = [];
         let activeFilterOnly = false;
 
-        function calculateAnomalies() {
-            const activeParam = document.getElementById("sel-parameter").value;
-            const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
-            const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
-            const selCat = document.getElementById("sel-category") ? document.getElementById("sel-category").value : "ALL";
-            const activeFilterOnly = document.getElementById("chk-active-only") ? document.getElementById("chk-active-only").checked : false;
-            const showSpatika = document.getElementById("chk-spatika") ? document.getElementById("chk-spatika").checked : true;
-            const showOtherVendors = document.getElementById("chk-other-vendors") ? document.getElementById("chk-other-vendors").checked : true;
+        function setInnerText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
 
-            const mappedStations = stations.filter(s => {
-                if (typeof s.lat !== 'number' || typeof s.lon !== 'number' || isNaN(s.lat) || isNaN(s.lon)) {
-                    return false;
-                }
-                const isSpatika = !s.company || s.company.toLowerCase() === "spatika";
-                const vendorMatch = isSpatika ? showSpatika : showOtherVendors;
-                if (!vendorMatch) return false;
-                if (activeFilterOnly && !s.is_active) return false;
-                if (selDiv !== "ALL" && s.division !== selDiv) return false;
-                if (selFE !== "ALL" && s.fe !== selFE) return false;
-                if (selCat !== "ALL") {
-                    if (selCat === "Quality") {
-                        if (s.category !== "Quality" && !s.is_quality) return false;
-                    } else if (s.category !== selCat) {
+        function calculateAnomalies() {
+            try {
+                const selParamEl = document.getElementById("sel-parameter");
+                const activeParam = selParamEl ? selParamEl.value : "rain";
+                const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
+                const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
+                const selCat = document.getElementById("sel-category") ? document.getElementById("sel-category").value : "ALL";
+                const activeFilterOnly = document.getElementById("chk-active-only") ? document.getElementById("chk-active-only").checked : false;
+                const showSpatika = document.getElementById("chk-spatika") ? document.getElementById("chk-spatika").checked : true;
+                const showOtherVendors = document.getElementById("chk-other-vendors") ? document.getElementById("chk-other-vendors").checked : true;
+
+                const mappedStations = stations.filter(s => {
+                    if (typeof s.lat !== 'number' || typeof s.lon !== 'number' || isNaN(s.lat) || isNaN(s.lon)) {
                         return false;
                     }
-                }
-                return true;
-            });
-
-            let typeFiltered = mappedStations.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
-
-            detectedAnomaliesList = [];
-            detectedTwsTempAnomaliesList = [];
-            detectedTwsHumiAnomaliesList = [];
-            detectedTwsWspAnomaliesList = [];
-
-            const trgStations = mappedStations.filter(s => s.type === "TRG");
-            let d = null;
-            if (trgStations.length >= 3) {
-                try {
-                    const coords = trgStations.map(s => [s.lon, s.lat]);
-                    d = d3.Delaunay.from(coords, d => d[0], d => d[1]);
-                } catch (e) {
-                    console.error("⚠️ Delaunay computation failed for anomalies: ", e);
-                }
-            }
-
-            trgStations.forEach((station, i) => {
-                const isDry = station.rain === 0.0 || (station.rain_status && station.rain_status.includes("ND")) || (station.status && station.status.includes("ND"));
-                if (isDry && d) {
-                    let neighbors = [];
-                    try { neighbors = Array.from(d.neighbors(i)); } catch (e) { neighbors = []; }
-                    if (neighbors.length > 0) {
-                        let sum = 0, count = 0;
-                        neighbors.forEach(nIdx => {
-                            const nStn = trgStations[nIdx];
-                            if (nStn && nStn.rain > 0.0 && !(nStn.rain_status && nStn.rain_status.includes("ND")) && !(nStn.status && nStn.status.includes("ND"))) {
-                                sum += nStn.rain;
-                                count++;
-                            }
-                        });
-                        const avg = count > 0 ? sum / count : 0;
-                        if (avg >= 5.0) {
-                            station.is_anomaly = true;
-                            station.neighbor_avg = avg;
-                            station.neighbors_count = count;
-                            detectedAnomaliesList.push({ station: station, avg: avg, count: count });
-                        } else { station.is_anomaly = false; }
+                    const isSpatika = !s.company || s.company.toLowerCase() === "spatika";
+                    const vendorMatch = isSpatika ? showSpatika : showOtherVendors;
+                    if (!vendorMatch) return false;
+                    if (activeFilterOnly && !s.is_active) return false;
+                    if (selDiv !== "ALL" && s.division !== selDiv) return false;
+                    if (selFE !== "ALL" && s.fe !== selFE) return false;
+                    if (selCat !== "ALL") {
+                        if (selCat === "Quality") {
+                            if (s.category !== "Quality" && !s.is_quality) return false;
+                        } else if (s.category !== selCat) {
+                            return false;
+                        }
                     }
-                } else { station.is_anomaly = false; }
-            });
+                    return true;
+                });
 
-            detectedAnomaliesList.sort((a, b) => b.avg - a.avg);
+                let typeFiltered = mappedStations.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
 
-            mappedStations.filter(s => s.type === "TWS").forEach(s => {
-                if (s.temp_status && !s.temp_status.includes("OK") && !s.temp_status.includes("ND")) {
-                    detectedTwsTempAnomaliesList.push({ station: s, issue: `Temp: ${s.temp_status}` });
-                } else if ((!s.temp_status || s.temp_status.includes("ND")) && s.is_active) {
-                    detectedTwsTempAnomaliesList.push({ station: s, issue: "Temp Outage (No Data)" });
+                detectedAnomaliesList = [];
+                detectedTwsTempAnomaliesList = [];
+                detectedTwsHumiAnomaliesList = [];
+                detectedTwsWspAnomaliesList = [];
+
+                const trgStations = mappedStations.filter(s => s.type === "TRG");
+                let d = null;
+                if (trgStations.length >= 3 && typeof d3 !== 'undefined' && d3.Delaunay) {
+                    try {
+                        const coords = trgStations.map(s => [s.lon, s.lat]);
+                        d = d3.Delaunay.from(coords, d => d[0], d => d[1]);
+                    } catch (e) {
+                        console.error("⚠️ Delaunay computation failed for anomalies: ", e);
+                    }
                 }
-                if (s.humi_status && !s.humi_status.includes("OK") && !s.humi_status.includes("ND")) {
-                    detectedTwsHumiAnomaliesList.push({ station: s, issue: `Humidity: ${s.humi_status}` });
-                } else if ((!s.humi_status || s.humi_status.includes("ND")) && s.is_active) {
-                    detectedTwsHumiAnomaliesList.push({ station: s, issue: "Humidity Outage (No Data)" });
-                }
-                if (s.wsp_status && !s.wsp_status.includes("OK") && !s.wsp_status.includes("ND")) {
-                    detectedTwsWspAnomaliesList.push({ station: s, issue: `Wind: ${s.wsp_status}` });
-                } else if ((!s.wsp_status || s.wsp_status.includes("ND")) && s.is_active) {
-                    detectedTwsWspAnomaliesList.push({ station: s, issue: "Wind Outage (No Data)" });
-                }
-            });
 
-            document.getElementById("stat-total").innerText = typeFiltered.length;
-            document.getElementById("stat-working").innerText = typeFiltered.filter(s => s.category === "Working").length;
-            document.getElementById("stat-outages").innerText = typeFiltered.filter(s => s.category === "No Data" || s.category === "Partial Data").length;
-            document.getElementById("stat-quality").innerText = typeFiltered.filter(s => s.category === "Quality" || s.is_quality).length;
-            document.getElementById("quality-badge").innerText = typeFiltered.filter(s => s.category === "Quality" || s.is_quality).length;
+                trgStations.forEach((station, i) => {
+                    const isDry = station.rain === 0.0 || (station.rain_status && station.rain_status.includes("ND")) || (station.status && station.status.includes("ND"));
+                    if (isDry && d) {
+                        let neighbors = [];
+                        try { neighbors = Array.from(d.neighbors(i)); } catch (e) { neighbors = []; }
+                        if (neighbors.length > 0) {
+                            let sum = 0, count = 0;
+                            neighbors.forEach(nIdx => {
+                                const nStn = trgStations[nIdx];
+                                if (nStn && nStn.rain > 0.0 && !(nStn.rain_status && nStn.rain_status.includes("ND")) && !(nStn.status && nStn.status.includes("ND"))) {
+                                    sum += nStn.rain;
+                                    count++;
+                                }
+                            });
+                            const avg = count > 0 ? sum / count : 0;
+                            if (avg >= 5.0) {
+                                station.is_anomaly = true;
+                                station.neighbor_avg = avg;
+                                station.neighbors_count = count;
+                                detectedAnomaliesList.push({ station: station, avg: avg, count: count });
+                            } else { station.is_anomaly = false; }
+                        }
+                    } else { station.is_anomaly = false; }
+                });
 
-            const anomLabel = document.getElementById("stat-anom-label");
-            if (activeParam === "rain") {
-                anomLabel.innerText = "Anomalies";
-                const filteredAnoms = detectedAnomaliesList.filter(a => typeFiltered.some(s => s.id === a.station.id));
-                document.getElementById("stat-anom").innerText = filteredAnoms.length;
-                document.getElementById("anom-badge").innerText = filteredAnoms.length;
-            } else {
-                anomLabel.innerText = "Outages";
-                let twsAnomList = [];
-                if (activeParam === "temp") twsAnomList = detectedTwsTempAnomaliesList;
-                else if (activeParam === "humi") twsAnomList = detectedTwsHumiAnomaliesList;
-                else if (activeParam === "wsp") twsAnomList = detectedTwsWspAnomaliesList;
-                const filteredTwsAnom = twsAnomList.filter(a => typeFiltered.some(s => s.id === a.station.id));
-                document.getElementById("stat-anom").innerText = filteredTwsAnom.length;
-                document.getElementById("anom-badge").innerText = filteredTwsAnom.length;
+                detectedAnomaliesList.sort((a, b) => b.avg - a.avg);
+
+                mappedStations.filter(s => s.type === "TWS").forEach(s => {
+                    if (s.temp_status && !s.temp_status.includes("OK") && !s.temp_status.includes("ND")) {
+                        detectedTwsTempAnomaliesList.push({ station: s, issue: `Temp: ${s.temp_status}` });
+                    } else if ((!s.temp_status || s.temp_status.includes("ND")) && s.is_active) {
+                        detectedTwsTempAnomaliesList.push({ station: s, issue: "Temp Outage (No Data)" });
+                    }
+                    if (s.humi_status && !s.humi_status.includes("OK") && !s.humi_status.includes("ND")) {
+                        detectedTwsHumiAnomaliesList.push({ station: s, issue: `Humidity: ${s.humi_status}` });
+                    } else if ((!s.humi_status || s.humi_status.includes("ND")) && s.is_active) {
+                        detectedTwsHumiAnomaliesList.push({ station: s, issue: "Humidity Outage (No Data)" });
+                    }
+                    if (s.wsp_status && !s.wsp_status.includes("OK") && !s.wsp_status.includes("ND")) {
+                        detectedTwsWspAnomaliesList.push({ station: s, issue: `Wind: ${s.wsp_status}` });
+                    } else if ((!s.wsp_status || s.wsp_status.includes("ND")) && s.is_active) {
+                        detectedTwsWspAnomaliesList.push({ station: s, issue: "Wind Outage (No Data)" });
+                    }
+                });
+
+                setInnerText("stat-total", typeFiltered.length);
+                setInnerText("stat-working", typeFiltered.filter(s => s.category === "Working").length);
+                setInnerText("stat-outages", typeFiltered.filter(s => s.category === "No Data" || s.category === "Partial Data").length);
+                setInnerText("stat-quality", typeFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
+                setInnerText("quality-badge", typeFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
+
+                if (activeParam === "rain") {
+                    setInnerText("stat-anom-label", "Anomalies");
+                    const filteredAnoms = detectedAnomaliesList.filter(a => typeFiltered.some(s => s.id === a.station.id));
+                    setInnerText("stat-anom", filteredAnoms.length);
+                    setInnerText("anom-badge", filteredAnoms.length);
+                } else {
+                    setInnerText("stat-anom-label", "Outages");
+                    let twsAnomList = [];
+                    if (activeParam === "temp") twsAnomList = detectedTwsTempAnomaliesList;
+                    else if (activeParam === "humi") twsAnomList = detectedTwsHumiAnomaliesList;
+                    else if (activeParam === "wsp") twsAnomList = detectedTwsWspAnomaliesList;
+                    const filteredTwsAnom = twsAnomList.filter(a => typeFiltered.some(s => s.id === a.station.id));
+                    setInnerText("stat-anom", filteredTwsAnom.length);
+                    setInnerText("anom-badge", filteredTwsAnom.length);
+                }
+            } catch (err_calc) {
+                console.error("⚠️ calculateAnomalies error: ", err_calc);
             }
         }
 
         function updateOverlay() {
-            const activeParam = document.getElementById("sel-parameter").value;
-            const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
-            const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
-            const selCat = document.getElementById("sel-category") ? document.getElementById("sel-category").value : "ALL";
-            activeFilterOnly = document.getElementById("chk-active-only").checked;
+            try {
+                const selParamEl = document.getElementById("sel-parameter");
+                const activeParam = selParamEl ? selParamEl.value : "rain";
+                const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
+                const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
+                const selCat = document.getElementById("sel-category") ? document.getElementById("sel-category").value : "ALL";
+                const chkActiveEl = document.getElementById("chk-active-only");
+                activeFilterOnly = chkActiveEl ? chkActiveEl.checked : false;
 
-            const mappedStations = stations.filter(s => typeof s.lat === 'number' && typeof s.lon === 'number' && !isNaN(s.lat) && !isNaN(s.lon));
-            let filteredStations = activeFilterOnly ? mappedStations.filter(s => s.is_active) : mappedStations;
+                const mappedStations = stations.filter(s => typeof s.lat === 'number' && typeof s.lon === 'number' && !isNaN(s.lat) && !isNaN(s.lon));
+                let filteredStations = activeFilterOnly ? mappedStations.filter(s => s.is_active) : mappedStations;
 
-            filteredStations = filteredStations.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
+                filteredStations = filteredStations.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
 
-            const showSpatika = document.getElementById("chk-spatika") ? document.getElementById("chk-spatika").checked : true;
-            const showOtherVendors = document.getElementById("chk-other-vendors") ? document.getElementById("chk-other-vendors").checked : true;
+                const showSpatika = document.getElementById("chk-spatika") ? document.getElementById("chk-spatika").checked : true;
+                const showOtherVendors = document.getElementById("chk-other-vendors") ? document.getElementById("chk-other-vendors").checked : true;
 
-            filteredStations = filteredStations.filter(s => {
-                const isSpatika = !s.company || s.company.toLowerCase() === "spatika";
-                const vendorMatch = isSpatika ? showSpatika : showOtherVendors;
-                if (!vendorMatch) return false;
-                if (selDiv !== "ALL" && s.division !== selDiv) return false;
-                if (selFE !== "ALL" && s.fe !== selFE) return false;
-                if (selCat !== "ALL") {
-                    if (selCat === "Quality") {
-                        if (s.category !== "Quality" && !s.is_quality) return false;
-                    } else if (s.category !== selCat) {
-                        return false;
+                filteredStations = filteredStations.filter(s => {
+                    const isSpatika = !s.company || s.company.toLowerCase() === "spatika";
+                    const vendorMatch = isSpatika ? showSpatika : showOtherVendors;
+                    if (!vendorMatch) return false;
+                    if (selDiv !== "ALL" && s.division !== selDiv) return false;
+                    if (selFE !== "ALL" && s.fe !== selFE) return false;
+                    if (selCat !== "ALL") {
+                        if (selCat === "Quality") {
+                            if (s.category !== "Quality" && !s.is_quality) return false;
+                        } else if (s.category !== selCat) {
+                            return false;
+                        }
                     }
-                }
-                return true;
-            });
+                    return true;
+                });
 
-            voronoiLayerGroup.clearLayers();
-            markerLayerGroup.clearLayers();
-            labelLayerGroup.clearLayers();
+                voronoiLayerGroup.clearLayers();
+                markerLayerGroup.clearLayers();
+                labelLayerGroup.clearLayers();
 
-            if (filteredStations.length === 0) return;
+                if (filteredStations.length === 0) return;
 
-            let showVoronoi = document.getElementById("chk-voronoi").checked;
-            const showMarkers = document.getElementById("chk-markers").checked;
-            const showLabels = document.getElementById("chk-labels").checked;
-            const showAnoms = document.getElementById("chk-anomalies").checked;
-            const anomsOnly = document.getElementById("chk-anomalies-only") ? document.getElementById("chk-anomalies-only").checked : false;
+                const chkVoronoiEl = document.getElementById("chk-voronoi");
+                let showVoronoi = chkVoronoiEl ? chkVoronoiEl.checked : true;
+                const showMarkers = document.getElementById("chk-markers") ? document.getElementById("chk-markers").checked : true;
+                const showLabels = document.getElementById("chk-labels") ? document.getElementById("chk-labels").checked : true;
+                const showAnoms = document.getElementById("chk-anomalies") ? document.getElementById("chk-anomalies").checked : true;
+                const anomsOnly = document.getElementById("chk-anomalies-only") ? document.getElementById("chk-anomalies-only").checked : false;
 
             let delaunay = null;
             let voronoi = null;
@@ -2630,7 +2643,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     }
                 }
             });
+        } catch (e_overlay) {
+            console.error("⚠️ updateOverlay error: ", e_overlay);
         }
+    }
 
         function showTooltip(e, station, activeParam) {
             const tt = document.getElementById("custom-tooltip");
@@ -2735,9 +2751,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
         }
 
         function renderLogs() {
-            const activeParam = document.getElementById("sel-parameter").value;
-            const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
-            const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
+            try {
+                const selParamEl = document.getElementById("sel-parameter");
+                const activeParam = selParamEl ? selParamEl.value : "rain";
+                const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
+                const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
 
             const anomLog = document.getElementById("anomalies-log");
             if (anomLog) {
@@ -2826,25 +2844,28 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     li.className = "log-item";
                     let displayVal = "", statusVal = "", statusColor = "";
                     if (activeParam === "rain") {
-                        displayVal = stn.rain.toFixed(1) + " mm";
-                        statusVal = stn.rain_status || stn.status;
+                        displayVal = (stn.rain !== null && stn.rain !== undefined && typeof stn.rain === 'number') ? stn.rain.toFixed(1) + " mm" : "N/A";
+                        statusVal = stn.rain_status || stn.status || "ND";
                     } else {
                         const valNum = stn[activeParam];
                         const unit = activeParam === "temp" ? " °C" : (activeParam === "humi" ? " %" : " m/s");
-                        displayVal = valNum !== null && valNum !== undefined ? valNum.toFixed(1) + unit : "N/A";
+                        displayVal = (valNum !== null && valNum !== undefined && typeof valNum === 'number') ? valNum.toFixed(1) + unit : "N/A";
                         statusVal = stn[`${activeParam}_status`] || `${activeParam.toUpperCase()}_ND`;
                     }
-                    statusColor = statusVal.includes("OK") ? "#15803d" : "#ef4444";
+                    statusColor = (statusVal && statusVal.includes("OK")) ? "#15803d" : "#ef4444";
                     li.innerHTML = `
                         <div class="log-title"><span>Stn ${stn.id} (${stn.type})</span><span class="meta-tag" style="color:${displayVal !== "N/A" ? '#15803d' : 'var(--text-secondary)'}; font-weight: bold;">${displayVal}</span></div>
-                        <div class="log-desc">${stn.name}</div>
+                        <div class="log-desc">${stn.name || ''}</div>
                         <div class="log-meta"><span class="meta-tag ${stn.is_active ? 'tag-active' : 'tag-inactive'}">${stn.is_active ? 'ACTIVE' : 'INACTIVE'}</span><span style="color:#0284c7; font-size:0.65rem;">FE: ${stn.fe || 'Unassigned'}</span></div>
                     `;
                     li.addEventListener("click", () => focusOnStation(stn));
                     stnLog.appendChild(li);
                 });
             }
+        } catch (err_rlog) {
+            console.error("⚠️ renderLogs error: ", err_rlog);
         }
+    }
 
         const tabConfigs = [
             { btn: "btn-anom-tab", container: "anomalies-list-container" },
@@ -2872,9 +2893,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
         const searchInput = document.getElementById("search-input");
         const dropdown = document.getElementById("autocomplete-dropdown");
         function getSearchMatches(val) {
-            const activeParam = document.getElementById("sel-parameter").value;
+            const selParamEl = document.getElementById("sel-parameter");
+            const activeParam = selParamEl ? selParamEl.value : "rain";
             let filtered = (activeParam === "rain") ? stations.filter(s => s.type === "TRG") : stations.filter(s => s.type === "TWS");
-            return filtered.filter(s => s.id.toLowerCase().includes(val) || s.name.toLowerCase().includes(val) || s.division.toLowerCase().includes(val));
+            return filtered.filter(s => (s.id && String(s.id).toLowerCase().includes(val)) || (s.name && String(s.name).toLowerCase().includes(val)) || (s.division && String(s.division).toLowerCase().includes(val)));
         }
 
         searchInput.addEventListener("input", function() {
