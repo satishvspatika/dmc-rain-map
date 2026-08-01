@@ -1797,57 +1797,81 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
             </div>
             
-            <!-- Map Layers & Controls (always visible in sidebar) -->
+            <!-- Map Layers & Controls (compact 2-col grid in sidebar) -->
             <details id="sidebar-controls" open style="margin-bottom: 8px;">
-                <summary style="cursor:pointer; font-size:0.7rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.05em; padding: 4px 0; list-style:none; display:flex; align-items:center; justify-content:space-between; user-select:none;">
-                    <span>🗂 Map Layers &amp; Controls</span>
-                    <span style="font-size:0.65rem; opacity:0.5;">▲</span>
+                <summary style="cursor:pointer; font-size:0.65rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.06em; padding: 3px 0; list-style:none; display:flex; align-items:center; justify-content:space-between; user-select:none;">
+                    <span>🗂 Layers &amp; Filters</span>
+                    <span style="font-size:0.6rem; opacity:0.4;">▲▼</span>
                 </summary>
-                <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px; padding:8px; background:rgba(0,0,0,0.025); border-radius:8px; border:1px solid rgba(0,0,0,0.07);">
-                    <div class="select-control vertical-control">
-                        <label for="sel-parameter2" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Map Parameter</label>
-                        <select id="sel-parameter" class="glass-select">
-                            <option value="rain">Rainfall (TRG)</option>
-                            <option value="temp">Temperature (TWS)</option>
-                            <option value="humi">Relative Humidity (TWS)</option>
-                            <option value="wsp">Wind Speed (TWS)</option>
-                        </select>
+                <div style="margin-top:5px; padding:7px 8px; background:rgba(0,0,0,0.03); border-radius:8px; border:1px solid rgba(0,0,0,0.07);">
+                    <!-- Row 1: Parameter + Division side by side -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:5px;">
+                        <div>
+                            <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); margin-bottom:2px; letter-spacing:0.04em;">Parameter</div>
+                            <select id="sel-parameter" class="glass-select" style="width:100%; font-size:0.7rem; padding:3px 4px;">
+                                <option value="rain">🌧 Rainfall (TRG)</option>
+                                <option value="temp">🌡 Temp (TWS)</option>
+                                <option value="humi">💧 Humidity</option>
+                                <option value="wsp">💨 Wind</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); margin-bottom:2px; letter-spacing:0.04em;">Division</div>
+                            <select id="sel-division" class="glass-select" style="width:100%; font-size:0.7rem; padding:3px 4px;">
+                                <option value="ALL">All Divs</option>
+                                <option value="BAN">BAN</option>
+                                <option value="BEL">BEL</option>
+                                <option value="GUL">GUL</option>
+                                <option value="MYS">MYS</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="select-control vertical-control">
-                        <label style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Division</label>
-                        <select id="sel-division" class="glass-select">
-                            <option value="ALL">All Divisions</option>
-                            <option value="BAN">Bengaluru (BAN)</option>
-                            <option value="BEL">Belagavi (BEL)</option>
-                            <option value="GUL">Kalaburagi (GUL)</option>
-                            <option value="MYS">Mysuru (MYS)</option>
-                        </select>
+                    <!-- Row 2: FE + Status side by side -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:6px;">
+                        <div>
+                            <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); margin-bottom:2px; letter-spacing:0.04em;">Field Eng.</div>
+                            <select id="sel-fe" class="glass-select" style="width:100%; font-size:0.7rem; padding:3px 4px;">
+                                <option value="ALL">All FEs</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); margin-bottom:2px; letter-spacing:0.04em;">Status</div>
+                            <select id="sel-category" class="glass-select" style="width:100%; font-size:0.7rem; padding:3px 4px;">
+                                <option value="ALL">All</option>
+                                <option value="Working">✅ Healthy</option>
+                                <option value="Outages">🔴 ND/PD</option>
+                                <option value="No Data">ND Only</option>
+                                <option value="Partial Data">PD Only</option>
+                                <option value="Quality">⚡ Quality</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="select-control vertical-control">
-                        <label style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Field Engineer (FE)</label>
-                        <select id="sel-fe" class="glass-select">
-                            <option value="ALL">All Field Engineers</option>
-                        </select>
-                    </div>
-                    <div class="select-control vertical-control">
-                        <label style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Status Filter</label>
-                        <select id="sel-category" class="glass-select">
-                            <option value="ALL">All Statuses</option>
-                            <option value="Working">🟢 Working / Healthy</option>
-                            <option value="Outages">🔴 No Data / Partial Data</option>
-                            <option value="No Data">🔴 No Data</option>
-                            <option value="Partial Data">🟡 Partial Data</option>
-                            <option value="Quality">⚡ Quality / Resets</option>
-                        </select>
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:2px;">
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-active-only"> Active Only</label>
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-voronoi" checked> Voronoi</label>
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-labels" checked> Labels</label>
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-anomalies" checked> Anomalies</label>
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-anomalies-only"> Anoms Only</label>
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-spatika" checked> Spatika</label>
-                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-other-vendors" checked> Others</label>
+                    <!-- Toggles: chip-style 4 per row -->
+                    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:3px;">
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer; white-space:nowrap;" title="Show Active stations only">
+                            <input type="checkbox" id="chk-active-only" style="width:11px;height:11px;margin:0;"> Active
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Show Voronoi cells">
+                            <input type="checkbox" id="chk-voronoi" checked style="width:11px;height:11px;margin:0;"> Voronoi
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Show station labels">
+                            <input type="checkbox" id="chk-labels" checked style="width:11px;height:11px;margin:0;"> Labels
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Show anomaly markers">
+                            <input type="checkbox" id="chk-anomalies" checked style="width:11px;height:11px;margin:0;"> Anom.
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Anomalies only">
+                            <input type="checkbox" id="chk-anomalies-only" style="width:11px;height:11px;margin:0;"> Anom↑
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Show Spatika stations">
+                            <input type="checkbox" id="chk-spatika" checked style="width:11px;height:11px;margin:0;"> Spatika
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Show other vendor stations">
+                            <input type="checkbox" id="chk-other-vendors" checked style="width:11px;height:11px;margin:0;"> Others
+                        </label>
+                        <label style="display:flex; align-items:center; gap:3px; font-size:0.62rem; background:rgba(0,0,0,0.04); border-radius:5px; padding:3px 4px; cursor:pointer;" title="Show district boundaries">
+                            <input type="checkbox" id="chk-districts" checked style="width:11px;height:11px;margin:0;"> Dist.
+                        </label>
                     </div>
                 </div>
             </details>
@@ -2446,6 +2470,19 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     return true;
                 });
 
+                // Stat counts always come from full set (Div/FE/Active filtered, but NOT category filtered)
+                // so Total/Healthy/ND/Quality never change when a category card is clicked
+                const baselineStations = stations.filter(s => {
+                    if (typeof s.lat !== 'number' || typeof s.lon !== 'number' || isNaN(s.lat) || isNaN(s.lon)) return false;
+                    const isSpatika = !s.company || s.company.toLowerCase() === 'spatika';
+                    if (!(isSpatika ? showSpatika : showOtherVendors)) return false;
+                    if (activeFilterOnly && !s.is_active) return false;
+                    if (selDiv !== 'ALL' && s.division !== selDiv) return false;
+                    if (selFE !== 'ALL' && s.fe !== selFE) return false;
+                    return true;
+                });
+                const baselineFiltered = baselineStations.filter(s => s.type === (activeParam === 'rain' ? 'TRG' : 'TWS'));
+
                 let typeFiltered = mappedStations.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
 
                 detectedAnomaliesList = [];
@@ -2509,11 +2546,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     }
                 });
 
-                setInnerText("stat-total", typeFiltered.length);
-                setInnerText("stat-working", typeFiltered.filter(s => s.category === "Working").length);
-                setInnerText("stat-outages", typeFiltered.filter(s => s.category === "No Data" || s.category === "Partial Data").length);
-                setInnerText("stat-quality", typeFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
-                setInnerText("quality-badge", typeFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
+                // Use baseline (not category-filtered) for stat cards so they don't change on category filter
+                setInnerText("stat-total", baselineFiltered.length);
+                setInnerText("stat-working", baselineFiltered.filter(s => s.category === "Working").length);
+                setInnerText("stat-outages", baselineFiltered.filter(s => s.category === "No Data" || s.category === "Partial Data").length);
+                setInnerText("stat-quality", baselineFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
+                setInnerText("quality-badge", baselineFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
 
                 if (activeParam === "rain") {
                     setInnerText("stat-anom-label", "Anomalies");
@@ -2562,6 +2600,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     if (selCat !== "ALL") {
                         if (selCat === "Quality") {
                             if (s.category !== "Quality" && !s.is_quality) return false;
+                        } else if (selCat === "Outages") {
+                            // ND/PD combined filter
+                            if (s.category !== "No Data" && s.category !== "Partial Data") return false;
                         } else if (s.category !== selCat) {
                             return false;
                         }
@@ -2608,14 +2649,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 const status = activeParam === "rain" ? (station.rain_status || station.status) : station[`${activeParam}_status`];
                 const color = getColorForParam(val, activeParam, status, isAnom);
 
+                const isND = station.category === "No Data";
+                const isPD = station.category === "Partial Data";
+
+                // Override color for ND/PD — these must be clearly visible regardless of rain value
+                let cellColor = color;
+                if (isND)  cellColor = "#ef4444";   // vivid red for No Data
+                if (isPD)  cellColor = "#f59e0b";   // amber for Partial Data
+
                 if (showVoronoi && voronoi) {
                     try {
                         const cellPolygon = voronoi.cellPolygon(i);
                         if (cellPolygon) {
                             const latLngs = cellPolygon.map(p => [p[1], p[0]]);
-                            const cellFillOpacity = isAnom ? 0.95 : (station.is_active ? 0.6 : 0.22);
-                            let cellStrokeColor = color === "#ffffff" ? "#0076ff" : (color === "#e5ecf6" ? "#cbd5e1" : color);
-                            let cellWeight = station.is_active ? 0.5 : 0.6;
+                            const cellFillOpacity = isAnom ? 0.95 : (isND || isPD ? 0.7 : (station.is_active ? 0.6 : 0.22));
+                            let cellStrokeColor = cellColor === "#ffffff" ? "#0076ff" : (cellColor === "#e5ecf6" ? "#cbd5e1" : cellColor);
+                            let cellWeight = (isND || isPD) ? 1.0 : (station.is_active ? 0.5 : 0.6);
                             let cellDashArray = station.is_active ? null : "4, 3";
                             
                             const poly = L.polygon(latLngs, {
@@ -2623,7 +2672,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
                                 color: cellStrokeColor,
                                 weight: cellWeight,
                                 dashArray: cellDashArray,
-                                fillColor: color,
+                                fillColor: cellColor,
                                 fillOpacity: cellFillOpacity
                             });
 
@@ -2653,9 +2702,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
                         markerFillColor = "#a855f7";
                         markerBorderColor = "#ffffff";
                     }
+                    // ND/PD get strong visible dot colors overriding default black
+                    if (isND) { markerFillColor = "#ef4444"; markerBorderColor = "#fff"; }
+                    if (isPD) { markerFillColor = "#f59e0b"; markerBorderColor = "#fff"; }
 
                     const marker = L.circleMarker([station.lat, station.lon], {
-                        radius: isQualityOrReset ? markerRadius + 1.5 : markerRadius,
+                        radius: isQualityOrReset ? markerRadius + 1.5 : (isND || isPD ? markerRadius + 1.0 : markerRadius),
                         fillColor: markerFillColor,
                         fillOpacity: 1.0,
                         color: markerBorderColor,
