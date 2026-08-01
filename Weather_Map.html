@@ -2542,17 +2542,19 @@ svg.leaflet-image-layer.leaflet-interactive path {
             const clicked = document.getElementById(cardId);
             if (clicked) clicked.classList.add("stat-active");
 
-            // If anomalies card clicked — switch to Anomalies tab so user can see the list
+            // Auto-select bottom tab details panel based on clicked card
             if (category === "Anomalies") {
-                const anomTab = document.getElementById("btn-anom-tab");
-                if (anomTab) anomTab.click();
-                calculateAnomalies();
-                updateOverlay();
-                renderLogs();
-                return;
+                const tab = document.getElementById("btn-anom-tab");
+                if (tab) tab.click();
+            } else if (category === "Quality") {
+                const tab = document.getElementById("btn-quality-tab");
+                if (tab) tab.click();
+            } else {
+                // Total, Healthy, No Data, Partial Data -> switch to Registry tab
+                const tab = document.getElementById("btn-list-tab");
+                if (tab) tab.click();
             }
 
-            // For all other categories — refresh map + logs
             calculateAnomalies();
             updateOverlay();
             renderLogs();
@@ -3074,6 +3076,23 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 filteredStations = filteredStations.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
                 if (selDiv !== "ALL") filteredStations = filteredStations.filter(s => s.division === selDiv);
                 if (selFE !== "ALL") filteredStations = filteredStations.filter(s => s.fe === selFE);
+
+                const selCat = document.getElementById("sel-category") ? document.getElementById("sel-category").value : "ALL";
+                if (selCat !== "ALL") {
+                    if (selCat === "Quality") {
+                        filteredStations = filteredStations.filter(s => s.category === "Quality" || s.is_quality);
+                    } else if (selCat === "Outages") {
+                        filteredStations = filteredStations.filter(s => s.category === "No Data" || s.category === "Partial Data");
+                    } else if (selCat === "Healed") {
+                        filteredStations = filteredStations.filter(s => {
+                            const preC = s.pre_service ? s.pre_service.category : s.category;
+                            const postC = s.post_service ? s.post_service.category : s.category;
+                            return preC !== postC;
+                        });
+                    } else {
+                        filteredStations = filteredStations.filter(s => s.category === selCat);
+                    }
+                }
 
                 const sortedStations = [...filteredStations].sort((a,b) => {
                     if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
