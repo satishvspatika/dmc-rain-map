@@ -2671,6 +2671,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 const showMarkers = document.getElementById("chk-markers") ? document.getElementById("chk-markers").checked : true;
                 const showLabels = document.getElementById("chk-labels") ? document.getElementById("chk-labels").checked : true;
                 const showAnoms = document.getElementById("chk-anomalies") ? document.getElementById("chk-anomalies").checked : true;
+                const anomsOnly = document.getElementById("chk-anomalies-only") ? document.getElementById("chk-anomalies-only").checked : false;
                 const allTypeStations = (activeFilterOnly ? mappedStations.filter(s => s.is_active) : mappedStations).filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
 
                 let delaunay = null;
