@@ -1303,17 +1303,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
             color: #1e293b;
         }
 
-        /* Controls Panel (Collapsible Dropdown Card next to Sidebar) */
+        /* Controls Panel — now embedded in sidebar, always visible */
         #controls-panel {
-            position: absolute;
-            top: 74px;
-            left: 450px;
-            z-index: 1000;
-            padding: 16px;
-            display: none; /* Collapsed by default */
-            flex-direction: column;
-            gap: 12px;
-            width: 220px;
+            display: none !important; /* hidden — controls moved into sidebar */
+        }
+
             animation: fadeInDown 0.25s ease;
         }
 
@@ -1401,8 +1395,23 @@ svg.leaflet-image-layer.leaflet-interactive path {
             border-radius: 8px;
             text-align: center;
             border: 1px solid rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+            user-select: none;
         }
-        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.13);
+            background: rgba(240,246,255,0.97);
+        }
+        .stat-card:active {
+            transform: translateY(0);
+        }
+        .stat-card.stat-active {
+            box-shadow: 0 0 0 2px #0076ff, 0 4px 14px rgba(0,118,255,0.18);
+            background: rgba(0,118,255,0.07);
+        }
+
         .stat-val {
             font-size: 1.1rem;
             font-weight: 700;
@@ -1766,72 +1775,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
             <span class="btn-icon">🎯</span>
         </button>
 
-        <!-- Top controls panel -->
-        <div id="controls-panel" class="glass-panel">
-            <div class="controls-header">Map Layers & Controls</div>
-            <div class="select-control vertical-control">
-                <label for="sel-parameter" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Map Parameter</label>
-                <select id="sel-parameter" class="glass-select">
-                    <option value="rain">Rainfall (TRG)</option>
-                    <option value="temp">Temperature (TWS)</option>
-                    <option value="humi">Relative Humidity (TWS)</option>
-                    <option value="wsp">Wind Speed (TWS)</option>
-                </select>
-            </div>
-            <div class="select-control vertical-control" style="margin-top: 4px;">
-                <label for="sel-division" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Division (Div)</label>
-                <select id="sel-division" class="glass-select">
-                    <option value="ALL">All Divisions (4 Divs)</option>
-                    <option value="BAN">Bengaluru (BAN)</option>
-                    <option value="BEL">Belagavi (BEL)</option>
-                    <option value="GUL">Kalaburagi (GUL)</option>
-                    <option value="MYS">Mysuru (MYS)</option>
-                </select>
-            </div>
-            <div class="select-control vertical-control" style="margin-top: 4px;">
-                <label for="sel-fe" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Field Engineer (FE)</label>
-                <select id="sel-fe" class="glass-select">
-                    <option value="ALL">All Field Engineers (32 FEs)</option>
-                </select>
-            </div>
-            <div class="select-control vertical-control" style="margin-top: 4px;">
-                <label for="sel-category" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Outage / Status Filter</label>
-                <select id="sel-category" class="glass-select">
-                    <option value="ALL">All Statuses (Healthy & Outages)</option>
-                    <option value="Working">🟢 Working / Healthy</option>
-                    <option value="No Data">🔴 No Data (96 Gaps)</option>
-                    <option value="Partial Data">🟡 Partial Data</option>
-                    <option value="Quality">⚡ Quality / Resets</option>
-                </select>
-            </div>
-            <label class="toggle-control" style="margin-top: 6px;">
-                <input type="checkbox" id="chk-voronoi" checked> Voronoi cells
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-active-only"> Active Only
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-districts" checked> Districts Outline
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-markers" checked> Station Dots
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-labels" checked> Labels (Auto)
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-anomalies" checked> Show Anomalies
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-anomalies-only"> Anomalies Only
-            </label>
-            <label class="toggle-control" style="border-top: 1px dashed var(--glass-border); padding-top: 6px; margin-top: 6px;">
-                <input type="checkbox" id="chk-spatika" checked> Spatika (Ours)
-            </label>
-            <label class="toggle-control">
-                <input type="checkbox" id="chk-other-vendors" checked> Other Vendors
-            </label>
-        </div>
+        <!-- Controls panel content moved into sidebar (sidebar-controls) -->
+        <div id="controls-panel" style="display:none !important;"></div>
 
         <!-- Sidebar overlay -->
         <div id="sidebar" class="glass-panel">
@@ -1852,25 +1797,80 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
             </div>
             
+            <!-- Map Layers & Controls (always visible in sidebar) -->
+            <details id="sidebar-controls" open style="margin-bottom: 8px;">
+                <summary style="cursor:pointer; font-size:0.7rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); letter-spacing:0.05em; padding: 4px 0; list-style:none; display:flex; align-items:center; justify-content:space-between; user-select:none;">
+                    <span>🗂 Map Layers &amp; Controls</span>
+                    <span style="font-size:0.65rem; opacity:0.5;">▲</span>
+                </summary>
+                <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px; padding:8px; background:rgba(0,0,0,0.025); border-radius:8px; border:1px solid rgba(0,0,0,0.07);">
+                    <div class="select-control vertical-control">
+                        <label for="sel-parameter2" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Map Parameter</label>
+                        <select id="sel-parameter" class="glass-select">
+                            <option value="rain">Rainfall (TRG)</option>
+                            <option value="temp">Temperature (TWS)</option>
+                            <option value="humi">Relative Humidity (TWS)</option>
+                            <option value="wsp">Wind Speed (TWS)</option>
+                        </select>
+                    </div>
+                    <div class="select-control vertical-control">
+                        <label style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Division</label>
+                        <select id="sel-division" class="glass-select">
+                            <option value="ALL">All Divisions</option>
+                            <option value="BAN">Bengaluru (BAN)</option>
+                            <option value="BEL">Belagavi (BEL)</option>
+                            <option value="GUL">Kalaburagi (GUL)</option>
+                            <option value="MYS">Mysuru (MYS)</option>
+                        </select>
+                    </div>
+                    <div class="select-control vertical-control">
+                        <label style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Field Engineer (FE)</label>
+                        <select id="sel-fe" class="glass-select">
+                            <option value="ALL">All Field Engineers</option>
+                        </select>
+                    </div>
+                    <div class="select-control vertical-control">
+                        <label style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Status Filter</label>
+                        <select id="sel-category" class="glass-select">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Working">🟢 Working / Healthy</option>
+                            <option value="Outages">🔴 No Data / Partial Data</option>
+                            <option value="No Data">🔴 No Data</option>
+                            <option value="Partial Data">🟡 Partial Data</option>
+                            <option value="Quality">⚡ Quality / Resets</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:2px;">
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-active-only"> Active Only</label>
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-voronoi" checked> Voronoi</label>
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-labels" checked> Labels</label>
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-anomalies" checked> Anomalies</label>
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-anomalies-only"> Anoms Only</label>
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-spatika" checked> Spatika</label>
+                        <label class="toggle-control" style="flex:1; min-width:100px;"><input type="checkbox" id="chk-other-vendors" checked> Others</label>
+                    </div>
+                </div>
+            </details>
+
             <!-- Stats Dashboard Grid -->
             <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); gap: 4px;">
-                <div class="stat-card">
+                <div class="stat-card stat-active" id="scard-total" onclick="handleStatCardClick('ALL', 'scard-total')" title="Show all stations">
                     <div id="stat-total" class="stat-val">1387</div>
                     <div class="stat-label">Total</div>
                 </div>
-                <div class="stat-card" style="border-left: 2px solid #22c55e;">
+                <div class="stat-card" id="scard-working" onclick="handleStatCardClick('Working', 'scard-working')" title="Show only Healthy stations" style="border-left: 2px solid #22c55e;">
                     <div id="stat-working" class="stat-val">1025</div>
                     <div class="stat-label">Healthy</div>
                 </div>
-                <div class="stat-card" style="border-left: 2px solid #ef4444;">
+                <div class="stat-card" id="scard-outages" onclick="handleStatCardClick('Outages', 'scard-outages')" title="Show No Data / Partial Data stations" style="border-left: 2px solid #ef4444;">
                     <div id="stat-outages" class="stat-val">267</div>
                     <div class="stat-label">ND/PD</div>
                 </div>
-                <div class="stat-card" style="border-left: 2px solid #a855f7;">
+                <div class="stat-card" id="scard-quality" onclick="handleStatCardClick('Quality', 'scard-quality')" title="Show Quality issue stations" style="border-left: 2px solid #a855f7;">
                     <div id="stat-quality" class="stat-val">8</div>
                     <div class="stat-label">Quality</div>
                 </div>
-                <div class="stat-card" style="border-left: 2px solid #0076ff;">
+                <div class="stat-card" id="scard-anom" onclick="handleStatCardClick('Anomalies', 'scard-anom')" title="Show Anomaly stations" style="border-left: 2px solid #0076ff;">
                     <div id="stat-anom" class="stat-val">0</div>
                     <div id="stat-anom-label" class="stat-label">Anomalies</div>
                 </div>
@@ -2375,6 +2375,44 @@ svg.leaflet-image-layer.leaflet-interactive path {
             if (el) el.innerText = text;
         }
 
+        // Stat card click handler — filters map to category and highlights active card
+        function handleStatCardClick(category, cardId) {
+            // Update the category select dropdown
+            const selCat = document.getElementById("sel-category");
+            if (selCat) {
+                if (category === "Working") selCat.value = "Working";
+                else if (category === "Outages") selCat.value = "Outages";
+                else if (category === "Quality") selCat.value = "Quality";
+                else if (category === "Anomalies") selCat.value = "ALL"; // anomalies are shown via overlay, not cat filter
+                else selCat.value = "ALL";
+            }
+
+            // Highlight the clicked card
+            ["scard-total","scard-working","scard-outages","scard-quality","scard-anom"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove("stat-active");
+            });
+            const clicked = document.getElementById(cardId);
+            if (clicked) clicked.classList.add("stat-active");
+
+            // If anomalies card clicked — switch to Anomalies tab so user can see the list
+            if (category === "Anomalies") {
+                const anomTab = document.getElementById("btn-anom-tab");
+                if (anomTab) anomTab.click();
+                // Also highlight anomaly markers by setting anomaly-only view
+                // Rerender with current filters
+                calculateAnomalies();
+                updateOverlay();
+                renderLogs();
+                return;
+            }
+
+            // For all other categories — refresh map + logs
+            calculateAnomalies();
+            updateOverlay();
+            renderLogs();
+        }
+
         function calculateAnomalies() {
             try {
                 const selParamEl = document.getElementById("sel-parameter");
@@ -2399,6 +2437,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     if (selCat !== "ALL") {
                         if (selCat === "Quality") {
                             if (s.category !== "Quality" && !s.is_quality) return false;
+                        } else if (selCat === "Outages") {
+                            if (s.category !== "No Data" && s.category !== "Partial Data") return false;
                         } else if (s.category !== selCat) {
                             return false;
                         }
