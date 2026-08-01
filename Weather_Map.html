@@ -1819,10 +1819,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
                             <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); margin-bottom:2px; letter-spacing:0.04em;">Division</div>
                             <select id="sel-division" class="glass-select" style="width:100%; font-size:0.7rem; padding:3px 4px;">
                                 <option value="ALL">All Divs</option>
-                                <option value="BAN">BAN</option>
-                                <option value="BEL">BEL</option>
-                                <option value="GUL">GUL</option>
-                                <option value="MYS">MYS</option>
                             </select>
                         </div>
                     </div>
@@ -1877,7 +1873,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
             </details>
 
             <!-- Stats Dashboard Grid -->
-            <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); gap: 4px;">
+            <div class="stats-grid" style="grid-template-columns: repeat(6, 1fr); gap: 3px;">
                 <div class="stat-card stat-active" id="scard-total" onclick="handleStatCardClick('ALL', 'scard-total')" title="Show all stations">
                     <div id="stat-total" class="stat-val">1387</div>
                     <div class="stat-label">Total</div>
@@ -1886,9 +1882,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
                     <div id="stat-working" class="stat-val">1025</div>
                     <div class="stat-label">Healthy</div>
                 </div>
-                <div class="stat-card" id="scard-outages" onclick="handleStatCardClick('Outages', 'scard-outages')" title="Show No Data / Partial Data stations" style="border-left: 2px solid #ef4444;">
-                    <div id="stat-outages" class="stat-val">267</div>
-                    <div class="stat-label">ND/PD</div>
+                <div class="stat-card" id="scard-nd" onclick="handleStatCardClick('No Data', 'scard-nd')" title="Show No Data stations" style="border-left: 2px solid #ef4444;">
+                    <div id="stat-nd" class="stat-val">180</div>
+                    <div class="stat-label">No Data</div>
+                </div>
+                <div class="stat-card" id="scard-pd" onclick="handleStatCardClick('Partial Data', 'scard-pd')" title="Show Partial Data stations" style="border-left: 2px solid #f59e0b;">
+                    <div id="stat-pd" class="stat-val">87</div>
+                    <div class="stat-label">Partial</div>
                 </div>
                 <div class="stat-card" id="scard-quality" onclick="handleStatCardClick('Quality', 'scard-quality')" title="Show Quality issue stations" style="border-left: 2px solid #a855f7;">
                     <div id="stat-quality" class="stat-val">8</div>
@@ -2043,14 +2043,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
         if (writeupEl) writeupEl.innerHTML = weatherWriteup;
 
         // Dynamically populate Field Engineer & Division dropdown options
-        const feSelect = document.getElementById("sel-fe");
-        const divSelect = document.getElementById("sel-division");
-        if (feSelect && divSelect) {
+        function populateFEDropdown(targetDiv = "ALL") {
+            const feSelect = document.getElementById("sel-fe");
+            if (!feSelect) return;
+            const currentVal = feSelect.value;
+            feSelect.innerHTML = '<option value="ALL">All FEs</option>';
             const feSet = new Set();
-            const divSet = new Set();
             stations.forEach(s => {
-                if (s.fe && s.fe !== "Unassigned") feSet.add(s.fe);
-                if (s.division) divSet.add(s.division);
+                if (s.fe && s.fe !== "Unassigned") {
+                    if (targetDiv === "ALL" || s.division === targetDiv) {
+                        feSet.add(s.fe);
+                    }
+                }
             });
             Array.from(feSet).sort().forEach(fe => {
                 const opt = document.createElement("option");
@@ -2058,12 +2062,57 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 opt.innerText = fe;
                 feSelect.appendChild(opt);
             });
+            if (feSet.has(currentVal)) {
+                feSelect.value = currentVal;
+            } else {
+                feSelect.value = "ALL";
+            }
+        }
+
+        function populateDivDropdown() {
+            const divSelect = document.getElementById("sel-division");
+            if (!divSelect) return;
+            divSelect.innerHTML = '<option value="ALL">All Divs</option>';
+            const divSet = new Set();
+            stations.forEach(s => {
+                if (s.division) divSet.add(s.division);
+            });
             Array.from(divSet).sort().forEach(div => {
                 const opt = document.createElement("option");
                 opt.value = div;
                 opt.innerText = div;
                 divSelect.appendChild(opt);
             });
+        }
+
+        populateDivDropdown();
+        populateFEDropdown();
+
+        function zoomToFilteredBounds() {
+            const selDiv = document.getElementById("sel-division") ? document.getElementById("sel-division").value : "ALL";
+            const selFE = document.getElementById("sel-fe") ? document.getElementById("sel-fe").value : "ALL";
+            const activeParam = document.getElementById("sel-parameter") ? document.getElementById("sel-parameter").value : "rain";
+
+            let targetStns = stations.filter(s => typeof s.lat === 'number' && typeof s.lon === 'number' && !isNaN(s.lat) && !isNaN(s.lon));
+            targetStns = targetStns.filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
+
+            if (selDiv !== "ALL") {
+                targetStns = targetStns.filter(s => s.division === selDiv);
+            }
+            if (selFE !== "ALL") {
+                targetStns = targetStns.filter(s => s.fe === selFE);
+            }
+
+            if (selFE !== "ALL" || selDiv !== "ALL") {
+                if (targetStns.length > 0) {
+                    const bounds = L.latLngBounds(targetStns.map(s => [s.lat, s.lon]));
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [40, 40], maxZoom: selFE !== "ALL" ? 11.5 : 9.8 });
+                    }
+                }
+            } else {
+                map.setView([15.15, 75.8], 7.0);
+            }
         }
 
         // Color coding schemes for all parameters
@@ -2405,6 +2454,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
             const selCat = document.getElementById("sel-category");
             if (selCat) {
                 if (category === "Working") selCat.value = "Working";
+                else if (category === "No Data") selCat.value = "No Data";
+                else if (category === "Partial Data") selCat.value = "Partial Data";
                 else if (category === "Outages") selCat.value = "Outages";
                 else if (category === "Quality") selCat.value = "Quality";
                 else if (category === "Anomalies") selCat.value = "ALL"; // anomalies are shown via overlay, not cat filter
@@ -2412,7 +2463,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
             }
 
             // Highlight the clicked card
-            ["scard-total","scard-working","scard-outages","scard-quality","scard-anom"].forEach(id => {
+            ["scard-total","scard-working","scard-nd","scard-pd","scard-quality","scard-anom"].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.remove("stat-active");
             });
@@ -2423,8 +2474,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
             if (category === "Anomalies") {
                 const anomTab = document.getElementById("btn-anom-tab");
                 if (anomTab) anomTab.click();
-                // Also highlight anomaly markers by setting anomaly-only view
-                // Rerender with current filters
                 calculateAnomalies();
                 updateOverlay();
                 renderLogs();
@@ -2549,7 +2598,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 // Use baseline (not category-filtered) for stat cards so they don't change on category filter
                 setInnerText("stat-total", baselineFiltered.length);
                 setInnerText("stat-working", baselineFiltered.filter(s => s.category === "Working").length);
-                setInnerText("stat-outages", baselineFiltered.filter(s => s.category === "No Data" || s.category === "Partial Data").length);
+                setInnerText("stat-nd", baselineFiltered.filter(s => s.category === "No Data").length);
+                setInnerText("stat-pd", baselineFiltered.filter(s => s.category === "Partial Data").length);
                 setInnerText("stat-quality", baselineFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
                 setInnerText("quality-badge", baselineFiltered.filter(s => s.category === "Quality" || s.is_quality).length);
 
@@ -3031,7 +3081,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
             if (el) el.addEventListener("change", updateOverlay);
         });
 
-        ["chk-spatika", "chk-other-vendors", "chk-active-only", "sel-division", "sel-fe", "sel-category"].forEach(id => {
+        ["chk-spatika", "chk-other-vendors", "chk-active-only", "sel-category"].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener("change", function() {
@@ -3041,6 +3091,27 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 });
             }
         });
+
+        const selDivEl = document.getElementById("sel-division");
+        if (selDivEl) {
+            selDivEl.addEventListener("change", function() {
+                populateFEDropdown(this.value);
+                calculateAnomalies();
+                updateOverlay();
+                renderLogs();
+                zoomToFilteredBounds();
+            });
+        }
+
+        const selFEEl = document.getElementById("sel-fe");
+        if (selFEEl) {
+            selFEEl.addEventListener("change", function() {
+                calculateAnomalies();
+                updateOverlay();
+                renderLogs();
+                zoomToFilteredBounds();
+            });
+        }
 
         const chkDistricts = document.getElementById("chk-districts");
         if (chkDistricts) {
