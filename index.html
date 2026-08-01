@@ -2671,76 +2671,77 @@ svg.leaflet-image-layer.leaflet-interactive path {
                 const showMarkers = document.getElementById("chk-markers") ? document.getElementById("chk-markers").checked : true;
                 const showLabels = document.getElementById("chk-labels") ? document.getElementById("chk-labels").checked : true;
                 const showAnoms = document.getElementById("chk-anomalies") ? document.getElementById("chk-anomalies").checked : true;
-                const anomsOnly = document.getElementById("chk-anomalies-only") ? document.getElementById("chk-anomalies-only").checked : false;
+                const allTypeStations = (activeFilterOnly ? mappedStations.filter(s => s.is_active) : mappedStations).filter(s => s.type === (activeParam === "rain" ? "TRG" : "TWS"));
 
-            let delaunay = null;
-            let voronoi = null;
-            if (showVoronoi && filteredStations.length >= 3) {
-                try {
-                    const coords = filteredStations.map(s => [s.lon, s.lat]);
-                    delaunay = d3.Delaunay.from(coords);
-                    voronoi = delaunay.voronoi([73.0, 11.0, 80.0, 19.5]);
-                } catch (err) {
-                    console.error("⚠️ Delaunay/Voronoi calculation failed, bypassing cells: ", err);
+                let delaunay = null;
+                let voronoi = null;
+                if (showVoronoi && allTypeStations.length >= 3) {
+                    try {
+                        const coords = allTypeStations.map(s => [s.lon, s.lat]);
+                        delaunay = d3.Delaunay.from(coords);
+                        voronoi = delaunay.voronoi([73.0, 11.0, 80.0, 19.5]);
+                    } catch (err) {
+                        console.error("⚠️ Delaunay/Voronoi calculation failed, bypassing cells: ", err);
+                        showVoronoi = false;
+                    }
+                } else {
                     showVoronoi = false;
                 }
-            } else {
-                showVoronoi = false;
-            }
 
-            const zoom = map.getZoom();
-            const markerRadius = zoom >= 10.5 ? 2.8 : (zoom >= 9.0 ? 2.2 : 1.5);
+                const zoom = map.getZoom();
+                const markerRadius = zoom >= 10.5 ? 2.8 : (zoom >= 9.0 ? 2.2 : 1.5);
 
-            filteredStations.forEach((station, i) => {
-                const isAnom = station.is_anomaly && activeParam === "rain";
-                if (anomsOnly && !isAnom) return;
+                filteredStations.forEach((station) => {
+                    const isAnom = station.is_anomaly && activeParam === "rain";
+                    if (anomsOnly && !isAnom) return;
 
-                const val = activeParam === "rain" ? station.rain : station[activeParam];
-                const status = activeParam === "rain" ? (station.rain_status || station.status) : station[`${activeParam}_status`];
-                const color = getColorForParam(val, activeParam, status, isAnom);
+                    const val = activeParam === "rain" ? station.rain : station[activeParam];
+                    const status = activeParam === "rain" ? (station.rain_status || station.status) : station[`${activeParam}_status`];
+                    const color = getColorForParam(val, activeParam, status, isAnom);
 
-                const isND = station.category === "No Data";
-                const isPD = station.category === "Partial Data";
+                    const isND = station.category === "No Data";
+                    const isPD = station.category === "Partial Data";
 
-                // Override color for ND/PD — these must be clearly visible regardless of rain value
-                let cellColor = color;
-                if (isND)  cellColor = "#ef4444";   // vivid red for No Data
-                if (isPD)  cellColor = "#f59e0b";   // amber for Partial Data
+                    // Override color for ND/PD — these must be clearly visible regardless of rain value
+                    let cellColor = color;
+                    if (isND)  cellColor = "#ef4444";   // vivid red for No Data
+                    if (isPD)  cellColor = "#f59e0b";   // amber for Partial Data
 
-                if (showVoronoi && voronoi) {
-                    try {
-                        const cellPolygon = voronoi.cellPolygon(i);
-                        if (cellPolygon) {
-                            const latLngs = cellPolygon.map(p => [p[1], p[0]]);
-                            const cellFillOpacity = isAnom ? 0.95 : (isND || isPD ? 0.7 : (station.is_active ? 0.6 : 0.22));
-                            let cellStrokeColor = cellColor === "#ffffff" ? "#0076ff" : (cellColor === "#e5ecf6" ? "#cbd5e1" : cellColor);
-                            let cellWeight = (isND || isPD) ? 1.0 : (station.is_active ? 0.5 : 0.6);
-                            let cellDashArray = station.is_active ? null : "4, 3";
-                            
-                            const poly = L.polygon(latLngs, {
-                                stroke: true,
-                                color: cellStrokeColor,
-                                weight: cellWeight,
-                                dashArray: cellDashArray,
-                                fillColor: cellColor,
-                                fillOpacity: cellFillOpacity
-                            });
+                    const origIdx = allTypeStations.indexOf(station);
+                    if (showVoronoi && voronoi && origIdx !== -1) {
+                        try {
+                            const cellPolygon = voronoi.cellPolygon(origIdx);
+                            if (cellPolygon) {
+                                const latLngs = cellPolygon.map(p => [p[1], p[0]]);
+                                const cellFillOpacity = isAnom ? 0.95 : (isND || isPD ? 0.7 : (station.is_active ? 0.6 : 0.22));
+                                let cellStrokeColor = cellColor === "#ffffff" ? "#0076ff" : (cellColor === "#e5ecf6" ? "#cbd5e1" : cellColor);
+                                let cellWeight = (isND || isPD) ? 1.0 : (station.is_active ? 0.5 : 0.6);
+                                let cellDashArray = station.is_active ? null : "4, 3";
+                                
+                                const poly = L.polygon(latLngs, {
+                                    stroke: true,
+                                    color: cellStrokeColor,
+                                    weight: cellWeight,
+                                    dashArray: cellDashArray,
+                                    fillColor: cellColor,
+                                    fillOpacity: cellFillOpacity
+                                });
 
-                            poly.on('mouseover', (e) => {
-                                poly.setStyle({ weight: 2.5, color: '#0f172a', fillOpacity: 0.85 });
-                                showTooltip(e, station, activeParam);
-                            });
-                            poly.on('mousemove', (e) => showTooltip(e, station, activeParam));
-                            poly.on('mouseout', () => {
-                                poly.setStyle({ weight: cellWeight, color: cellStrokeColor, fillOpacity: cellFillOpacity });
-                                hideTooltip();
-                            });
-                            poly.on('click', () => showPopup(station));
+                                poly.on('mouseover', (e) => {
+                                    poly.setStyle({ weight: 2.5, color: '#0f172a', fillOpacity: 0.85 });
+                                    showTooltip(e, station, activeParam);
+                                });
+                                poly.on('mousemove', (e) => showTooltip(e, station, activeParam));
+                                poly.on('mouseout', () => {
+                                    poly.setStyle({ weight: cellWeight, color: cellStrokeColor, fillOpacity: cellFillOpacity });
+                                    hideTooltip();
+                                });
+                                poly.on('click', () => showPopup(station));
 
-                            voronoiLayerGroup.addLayer(poly);
-                        }
-                    } catch (e_cell) {}
-                }
+                                voronoiLayerGroup.addLayer(poly);
+                            }
+                        } catch (e_cell) {}
+                    }
 
                 if (showMarkers) {
                     const isSpatika = !station.company || station.company.toLowerCase() === "spatika";
